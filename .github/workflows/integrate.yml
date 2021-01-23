@@ -8,7 +8,7 @@ jobs:
         name: Check
         # specify the virtual development environment to run the tests.
         # https://github.com/actions/virtual-environments
-        runs_on: ubuntu-latest
+        runs-on: ubuntu-latest
         steps:
             - name: Checkout sources
               uses: actions/checkout@v2
@@ -28,7 +28,7 @@ jobs:
 
     test:
         name: Test Suite
-        runs_on: ubuntu-latest
+        runs-on: ubuntu-latest
         steps: 
             - name: Checkout sources
               uses: actions/checkout@v2
@@ -48,7 +48,7 @@ jobs:
 
     lints: # code formatting tools
         name: Lints
-        runs_on: ubuntu-latest
+        runs-on: ubuntu-latest
         steps:
             - name: Checkout sources
               uses: actions/checkout@v2
