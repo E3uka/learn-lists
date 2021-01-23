@@ -85,7 +85,7 @@ impl<T> List<T> {
         self.head.as_mut().map(|node| &mut node.elem)
     }
 
-    pub fn into_iter(self) -> IntoIter<T> {
+    pub fn into_iterator(self) -> IntoIter<T> {
         IntoIter(self)
     }
 
@@ -178,7 +178,7 @@ mod test {
         list.push(2);
         list.push(3);
 
-        let mut iter = list.into_iter();
+        let mut iter = list.into_iterator();
 
         assert_eq!(iter.next(), Some(3));
         assert_eq!(iter.next(), Some(2));
