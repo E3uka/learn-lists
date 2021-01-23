@@ -96,6 +96,12 @@ impl<T> List<T> {
     }
 }
 
+impl<T> Default for List<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 // generically implement a Drop for a generic List.
 impl<T> Drop for List<T> {
     fn drop(&mut self) {

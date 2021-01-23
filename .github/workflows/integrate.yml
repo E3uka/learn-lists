@@ -1,0 +1,76 @@
+# action created based on quickstart example from https://github.com/actions-rs/example/blob/master/.github/workflows/quickstart.yml.
+on: [push, pull_request]
+
+name: Rust Continuos Integration
+
+jobs:
+    check:
+        name: Check
+        # specify the virtual development environment to run the tests.
+        # https://github.com/actions/virtual-environments
+        runs_on: ubuntu-latest
+        steps:
+            - name: Checkout sources
+              uses: actions/checkout@v2
+
+            - name: Install stable toolchain
+              uses: actions-rs/toolchain@v1
+              with:
+                  profile: minimal
+                  toolchain: stable
+                  override: true
+
+            - name: Run cargo check
+              uses: actions-rs/cargo@v1
+              continue-on-error: false # stop the push or the pull if an error occurs.
+              with:
+                  command: check
+
+    test:
+        name: Test Suite
+        runs_on: ubuntu-latest
+        steps: 
+            - name: Checkout sources
+              uses: actions/checkout@v2
+
+            - name: Install stable toolchain
+              uses: actions-rs/toolchain@v1
+              with:
+                  profile: minimal
+                  toolchain: stable
+                  override: true
+
+            - name: Run cargo test
+              uses: actions-rs/cargo@v1
+              continue-on-error: false
+              with:
+                  command: test
+
+    lints: # code formatting tools
+        name: Lints
+        runs_on: ubuntu-latest
+        steps:
+            - name: Checkout sources
+              uses: actions/checkout@v2
+
+            - name: Install stable toolchain
+              uses: actions-rs/toolchain@v1
+              with:
+                  profile: minimal
+                  toolchain: stable
+                  override: true
+                  components: rustfmt, clippy
+
+            - name: Run cargo fmt
+              uses: actions-rs/cargo@v1
+              continue-on-error: false
+              with:
+                  command: fmt
+                  args: --all -- --check
+
+            - name: Run cargo clippy
+              uses: actions-rs/cargo@v1
+              continue-on-error: false
+              with:
+                  command: clippy
+                  args: -- -D warnings
