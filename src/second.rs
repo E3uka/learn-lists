@@ -33,15 +33,44 @@ pub struct Iter<'a, T> {
 
 impl<'a, T> Iterator for Iter<'a, T> {
     type Item = &'a T;
+
     fn next(&mut self) -> Option<Self::Item> {
         self.next.map(|node| {
-            // doc ref:
-            // as_deref Converts from `Option<T>` (or `&Option<T>`) to `Option<&T::Target>`.
+            // reassign self.next ready for the next call.
+            // as_deref() Converts from `Option<T>` (or `&Option<T>`) to `Option<&T::Target>`.
             // Leaves the original Option in-place, creating a new one with a reference
             // to the original one, additionally coercing the contents via [`Deref`].
             self.next = node.next.as_deref();
 
             &node.elem
+        })
+    }
+}
+
+pub struct IterMut<'a, T> {
+    next: Option<&'a mut Node<T>>,
+}
+
+impl<'a, T> Iterator for IterMut<'a, T> {
+    type Item = &'a mut T;
+
+    // desugared:
+    //
+    // fn next<'b>(&'b mut self) -> Option<'a, T>
+    //
+    // Thus there is no constraint between the lifetime of the next functions input and output.
+    // We must manually add a constraint by taking an exclusive reference to the value inside the
+    // Option before mappping over the next value.
+    fn next(&mut self) -> Option<Self::Item> {
+        // we take the Option<&mut> so we have exclusive access to the mutable reference, thus
+        // there is no need to worry about someone looking at it again.
+        self.next.take().map(|node| {
+            // reassign self.next ready for the next call.
+            // as_deref_mut() Converts from `Option<T>` (or `&mut Option<T>`) to
+            // `Option<&mut T::Target>`.
+            self.next = node.next.as_deref_mut();
+
+            &mut node.elem
         })
     }
 }
@@ -89,9 +118,16 @@ impl<T> List<T> {
         IntoIter(self)
     }
 
-    pub fn iter(&self) -> Iter<T> {
+    // using Rust 2018 explicitly elided lifetime syntax.
+    pub fn iter(&self) -> Iter<'_, T> {
         Iter {
             next: self.head.as_deref(),
+        }
+    }
+
+    pub fn iter_mut(&mut self) -> IterMut<'_, T> {
+        IterMut {
+            next: self.head.as_deref_mut(),
         }
     }
 }
@@ -178,8 +214,8 @@ mod test {
         list.push(2);
         list.push(3);
 
+        // test that you get ownership to the inner value wrapped in an option.
         let mut iter = list.into_iterator();
-
         assert_eq!(iter.next(), Some(3));
         assert_eq!(iter.next(), Some(2));
         assert_eq!(iter.next(), Some(1));
@@ -194,9 +230,25 @@ mod test {
         list.push(2);
         list.push(3);
 
+        // test that you get a shared reference to the inner value wrapped in an option.
         let mut iter = list.iter();
         assert_eq!(iter.next(), Some(&3));
         assert_eq!(iter.next(), Some(&2));
         assert_eq!(iter.next(), Some(&1));
+    }
+
+    #[test]
+    fn iter_mut() {
+        let mut list = List::new();
+
+        list.push(1);
+        list.push(2);
+        list.push(3);
+
+        // test that you get an exclusive reference to the inner value wrapped in an option.
+        let mut iter = list.iter_mut();
+        assert_eq!(iter.next(), Some(&mut 3));
+        assert_eq!(iter.next(), Some(&mut 2));
+        assert_eq!(iter.next(), Some(&mut 1));
     }
 }
