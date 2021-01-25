@@ -114,7 +114,8 @@ impl<T> List<T> {
         self.head.as_mut().map(|node| &mut node.elem)
     }
 
-    pub fn into_iterator(self) -> IntoIter<T> {
+    #[allow(clippy::should_implement_trait)] // remove into_iter ambiguos call warning
+    pub fn into_iter(self) -> IntoIter<T> {
         IntoIter(self)
     }
 
@@ -215,7 +216,7 @@ mod test {
         list.push(3);
 
         // test that you get ownership to the inner value wrapped in an option.
-        let mut iter = list.into_iterator();
+        let mut iter = list.into_iter();
         assert_eq!(iter.next(), Some(3));
         assert_eq!(iter.next(), Some(2));
         assert_eq!(iter.next(), Some(1));
