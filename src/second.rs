@@ -12,69 +12,6 @@ pub struct List<T> {
     head: Link<T>,
 }
 
-// Tuple structs are an alternative form of struct, useful for trivial wrappers around other types
-// and accessible via the dot notation i.e. 'variable.0'.
-pub struct IntoIter<T>(List<T>);
-
-// implement iterator for the new struct type that List<T> changes into when you call the the
-// into_iter() method.
-impl<T> Iterator for IntoIter<T> {
-    type Item = T;
-    fn next(&mut self) -> Option<Self::Item> {
-        self.0.pop() // use internal pop method to take ownership of internal Node.
-    }
-}
-
-// Iter is generic over T and has a lifetime 'a where Iter only lives as long as reference to the
-// inner reference to the Node of the same type.
-pub struct Iter<'a, T> {
-    next: Option<&'a Node<T>>,
-}
-
-impl<'a, T> Iterator for Iter<'a, T> {
-    type Item = &'a T;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.next.map(|node| {
-            // reassign self.next ready for the next call.
-            // as_deref() Converts from `Option<T>` (or `&Option<T>`) to `Option<&T::Target>`.
-            // Leaves the original Option in-place, creating a new one with a reference
-            // to the original one, additionally coercing the contents via [`Deref`].
-            self.next = node.next.as_deref();
-
-            &node.elem
-        })
-    }
-}
-
-pub struct IterMut<'a, T> {
-    next: Option<&'a mut Node<T>>,
-}
-
-impl<'a, T> Iterator for IterMut<'a, T> {
-    type Item = &'a mut T;
-
-    // desugared:
-    //
-    // fn next<'b>(&'b mut self) -> Option<'a, T>
-    //
-    // Thus there is no constraint between the lifetime of the next functions input and output.
-    // We must manually add a constraint by taking an exclusive reference to the value inside the
-    // Option before mappping over the next value.
-    fn next(&mut self) -> Option<Self::Item> {
-        // we take the Option<&mut> so we have exclusive access to the mutable reference, thus
-        // there is no need to worry about someone looking at it again.
-        self.next.take().map(|node| {
-            // reassign self.next ready for the next call.
-            // as_deref_mut() Converts from `Option<T>` (or `&mut Option<T>`) to
-            // `Option<&mut T::Target>`.
-            self.next = node.next.as_deref_mut();
-
-            &mut node.elem
-        })
-    }
-}
-
 impl<T> List<T> {
     // Self refers the the object that is after the impl statement, thus we do not need to change
     // method signature when implementing generically.
@@ -149,6 +86,71 @@ impl<T> Drop for List<T> {
         while let Some(mut boxed_node) = cur_link {
             cur_link = boxed_node.next.take();
         }
+    }
+}
+
+// Iter iterates over &T and has a lifetime 'a where Iter only lives as long as reference to the
+// inner reference to the Node of the same type.
+pub struct Iter<'a, T> {
+    next: Option<&'a Node<T>>,
+}
+
+impl<'a, T> Iterator for Iter<'a, T> {
+    type Item = &'a T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.next.map(|node| {
+            // reassign self.next ready for the next call.
+            // as_deref() Converts from `Option<T>` (or `&Option<T>`) to `Option<&T::Target>`.
+            // Leaves the original Option in-place, creating a new one with a reference
+            // to the original one, additionally coercing the contents via [`Deref`].
+            self.next = node.next.as_deref();
+
+            &node.elem
+        })
+    }
+}
+
+// IterMut iterates over &mut T.
+pub struct IterMut<'a, T> {
+    next: Option<&'a mut Node<T>>,
+}
+
+impl<'a, T> Iterator for IterMut<'a, T> {
+    type Item = &'a mut T;
+
+    // desugared:
+    //
+    // fn next<'b>(&'b mut self) -> Option<'a, T>
+    //
+    // Thus there is no constraint between the lifetime of the next functions input and output.
+    // We must manually add a constraint by taking an exclusive reference to the value inside the
+    // Option before mappping over the next value.
+    fn next(&mut self) -> Option<Self::Item> {
+        // we take the Option<&mut> so we have exclusive access to the mutable reference, thus
+        // there is no need to worry about someone looking at it again.
+        self.next.take().map(|node| {
+            // reassign self.next ready for the next call.
+            // as_deref_mut() Converts from `Option<T>` (or `&mut Option<T>`) to
+            // `Option<&mut T::Target>`.
+            self.next = node.next.as_deref_mut();
+
+            &mut node.elem
+        })
+    }
+}
+
+// IntoIter iterates over T.
+// Tuple structs are an alternative form of struct, useful for trivial wrappers around other types
+// and accessible via the dot notation i.e. 'variable.0'.
+pub struct IntoIter<T>(List<T>);
+
+// implement iterator for the new struct type that List<T> changes into when you call the the
+// into_iter() method.
+impl<T> Iterator for IntoIter<T> {
+    type Item = T;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.pop() // use internal pop method to take ownership of internal Node.
     }
 }
 
